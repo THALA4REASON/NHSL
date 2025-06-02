@@ -1,0 +1,96 @@
+java
+import java.net.*;
+import java.io.*;
+import java.util.Scanner;
+public class UDPServer {
+ public static void main(String[] args) {
+ try (DatagramSocket socket = new DatagramSocket(5000);
+ Scanner scanner = new Scanner(System.in)) {
+ byte[] buffer = new byte[1024];
+ System.out.println("Server started. Waiting for client to connect...");
+ // Step 1: Receive initial connection
+ DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+ socket.receive(packet);
+ InetAddress clientAddress = packet.getAddress();
+ int clientPort = packet.getPort();
+ // Step 2: Send acknowledgment
+ String ack = "Connection established with server at localhost:5000";
+ socket.send(new DatagramPacket(ack.getBytes(), ack.length(), clientAddress, clientPort)
+ // Step 3: Receive client's acknowledgment
+ socket.receive(packet);
+
+System.out.println(new String(packet.getData(), 0, packet.getLength()));
+ System.out.println("Connection established. Start chatting!");
+ while (true) {
+ // Receive client's message
+ socket.receive(packet);
+ String clientMsg = new String(packet.getData(), 0, packet.getLength());
+ System.out.println("Client: " + clientMsg);
+ if (clientMsg.equalsIgnoreCase("bye")) {
+ System.out.println("Client ended the chat. Closing connection...");
+ break;
+ }
+ // Send server's message
+ System.out.print("Server: ");
+ String serverMsg = scanner.nextLine();
+ socket.send(new DatagramPacket(serverMsg.getBytes(), serverMsg.length(), clientAddre
+ if (serverMsg.equalsIgnoreCase("bye")) {
+ System.out.println("Server ended the chat. Closing connection...");
+ break;
+ }
+ }
+ System.out.println("Connection closed.");
+ } catch (IOException e) {
+ e.printStackTrace();
+ }
+ }
+}
+
+
+UDPClient.java (Shorter Version)
+java
+import java.net.*;
+import java.io.*;
+import java.util.Scanner;
+public class UDPClient {
+ public static void main(String[] args) {
+ try (DatagramSocket socket = new DatagramSocket();
+ Scanner scanner = new Scanner(System.in)) {
+ InetAddress serverAddress = InetAddress.getByName("localhost");
+ byte[] buffer = new byte[1024];
+ // Step 1: Send initial connection
+ String connectMsg = "connect";
+ socket.send(new DatagramPacket(connectMsg.getBytes(), connectMsg.length(), serverAddress
+ // Step 2: Receive server's acknowledgment
+ DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+ socket.receive(packet);
+ System.out.println(new String(packet.getData(), 0, packet.getLength()));
+ // Step 3: Send client's acknowledgment
+ String clientAck = "Connection established with client at localhost:5000";
+ socket.send(new DatagramPacket(clientAck.getBytes(), clientAck.length(), serverAddress,
+ System.out.println("Connection established. Start chatting!");
+ while (true) {
+ // Send client's message
+ System.out.print("Client: ");
+ String clientMsg = scanner.nextLine();
+ socket.send(new DatagramPacket(clientMsg.getBytes(), clientMsg.length(), serverAddre
+
+if (clientMsg.equalsIgnoreCase("bye")) {
+ System.out.println("Client ended the chat. Closing connection...");
+ break;
+ }
+ // Receive server's response
+ socket.receive(packet);
+ String serverMsg = new String(packet.getData(), 0, packet.getLength());
+ System.out.println("Server: " + serverMsg);
+ if (serverMsg.equalsIgnoreCase("bye")) {
+ System.out.println("Server ended the chat. Closing connection...");
+ break;
+ }
+ }
+ System.out.println("Connection closed.");
+ } catch (IOException e) {
+ e.printStackTrace();
+ }
+ }
+}
